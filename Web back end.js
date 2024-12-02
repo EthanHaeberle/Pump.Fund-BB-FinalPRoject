@@ -401,111 +401,111 @@ async function contributeToCampaign(campaignId, amount) {
 }
 
 
-        // MetaMask connection logic
-        document.getElementById('connectButton').addEventListener('click', async () => {
-            if (window.ethereum) {
-                // Request account access (MetaMask will show a pop-up)
-                try {
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    userAccount = await web3.eth.getAccounts();
-                    document.getElementById('status').textContent = `Connected: ${userAccount[0]}`;
-                    initializeWeb3();
-                } catch (error) {
-                    console.log('User denied account access or MetaMask error');
-                    alert('Please connect MetaMask!');
-                }
-            } else {
-                console.log('MetaMask is not installed');
-                alert('Please install MetaMask to interact with the platform.');
-            }
+// MetaMask connection logic
+document.getElementById('connectButton').addEventListener('click', async () => {
+    if (window.ethereum) {
+        // Request account access (MetaMask will show a pop-up)
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            userAccount = await web3.eth.getAccounts();
+            document.getElementById('status').textContent = `Connected: ${userAccount[0]}`;
+            initializeWeb3();
+        } catch (error) {
+            console.log('User denied account access or MetaMask error');
+            alert('Please connect MetaMask!');
+        }
+    } else {
+        console.log('MetaMask is not installed');
+        alert('Please install MetaMask to interact with the platform.');
+    }
+});
+
+function initializeWeb3() {
+    web3 = new Web3(window.ethereum);
+    contract = new web3.eth.Contract(contractABI, contractAddress);
+    console.log('Web3 initialized with MetaMask');
+    loadCampaigns();
+}
+
+async function loadCampaigns() {
+    const campaigns = await contract.methods.getOpenCampaigns().call();
+    const campaignListElement = document.getElementById('campaign-list');
+    campaignListElement.innerHTML = ''; // Clear the current list
+
+    campaigns[0].forEach((campaignName, index) => {
+        const campaignId = campaigns[1][index];
+        const description = campaigns[2][index];
+        const campaignElement = document.createElement('div');
+        campaignElement.innerHTML = `
+            <h3>${campaignName}</h3>
+            <p>${description}</p>
+            <button onclick="viewCampaignDetails(${campaignId})">View Details</button>
+        `;
+        campaignListElement.appendChild(campaignElement);
+    });
+}
+
+function viewCampaignDetails(campaignId) {
+    // Function to load campaign details
+    contract.methods.getCampaignDetails(campaignId).call().then((details) => {
+        const { name, description, goalAmountEth, pledgedAmountEth, deadline } = details;
+        document.getElementById('campaign-details').style.display = 'block';
+        document.getElementById('details').innerHTML = `
+            <h3>${name}</h3>
+            <p>${description}</p>
+            <p>Goal: ${goalAmountEth} ETH</p>
+            <p>Pledged: ${pledgedAmountEth} ETH</p>
+            <p>Deadline: ${new Date(deadline * 1000).toLocaleString()}</p>
+        `;
+    });
+}
+
+function goBack() {
+    document.getElementById('campaign-details').style.display = 'none';
+}
+
+async function makeContribution() {
+    const campaignId = document.getElementById('campaignId').value;
+    const amount = document.getElementById('amount').value;
+
+    if (!userAccount) {
+        alert('Please connect MetaMask first.');
+        return;
+    }
+
+    try {
+        await contract.methods.contribute(campaignId).send({
+            from: userAccount[0],
+            value: web3.utils.toWei(amount, 'ether')
         });
+        alert('Contribution successful!');
+    } catch (error) {
+        console.error('Error contributing to campaign:', error);
+        alert('Error making the contribution.');
+    }
+}
 
-        function initializeWeb3() {
-            web3 = new Web3(window.ethereum);
-            contract = new web3.eth.Contract(contractABI, contractAddress);
-            console.log('Web3 initialized with MetaMask');
-            loadCampaigns();
-        }
+async function createCampaign() {
+    const name = document.getElementById('campaign-name').value;
+    const description = document.getElementById('campaign-description').value;
+    const goal = document.getElementById('campaign-goal').value;
+    const duration = document.getElementById('campaign-duration').value;
 
-        async function loadCampaigns() {
-            const campaigns = await contract.methods.getOpenCampaigns().call();
-            const campaignListElement = document.getElementById('campaign-list');
-            campaignListElement.innerHTML = ''; // Clear the current list
+    if (!userAccount) {
+        alert('Please connect MetaMask first.');
+        return;
+    }
 
-            campaigns[0].forEach((campaignName, index) => {
-                const campaignId = campaigns[1][index];
-                const description = campaigns[2][index];
-                const campaignElement = document.createElement('div');
-                campaignElement.innerHTML = `
-                    <h3>${campaignName}</h3>
-                    <p>${description}</p>
-                    <button onclick="viewCampaignDetails(${campaignId})">View Details</button>
-                `;
-                campaignListElement.appendChild(campaignElement);
-            });
-        }
-
-        function viewCampaignDetails(campaignId) {
-            // Function to load campaign details
-            contract.methods.getCampaignDetails(campaignId).call().then((details) => {
-                const { name, description, goalAmountEth, pledgedAmountEth, deadline } = details;
-                document.getElementById('campaign-details').style.display = 'block';
-                document.getElementById('details').innerHTML = `
-                    <h3>${name}</h3>
-                    <p>${description}</p>
-                    <p>Goal: ${goalAmountEth} ETH</p>
-                    <p>Pledged: ${pledgedAmountEth} ETH</p>
-                    <p>Deadline: ${new Date(deadline * 1000).toLocaleString()}</p>
-                `;
-            });
-        }
-
-        function goBack() {
-            document.getElementById('campaign-details').style.display = 'none';
-        }
-
-        async function makeContribution() {
-            const campaignId = document.getElementById('campaignId').value;
-            const amount = document.getElementById('amount').value;
-
-            if (!userAccount) {
-                alert('Please connect MetaMask first.');
-                return;
-            }
-
-            try {
-                await contract.methods.contribute(campaignId).send({
-                    from: userAccount[0],
-                    value: web3.utils.toWei(amount, 'ether')
-                });
-                alert('Contribution successful!');
-            } catch (error) {
-                console.error('Error contributing to campaign:', error);
-                alert('Error making the contribution.');
-            }
-        }
-
-        async function createCampaign() {
-            const name = document.getElementById('campaign-name').value;
-            const description = document.getElementById('campaign-description').value;
-            const goal = document.getElementById('campaign-goal').value;
-            const duration = document.getElementById('campaign-duration').value;
-
-            if (!userAccount) {
-                alert('Please connect MetaMask first.');
-                return;
-            }
-
-            try {
-                await contract.methods.createCampaign(name, description, goal, duration).send({
-                    from: userAccount[0]
-                });
-                alert('Campaign created successfully!');
-            } catch (error) {
-                console.error('Error creating campaign:', error);
-                alert('Error creating the campaign.');
-            }
-        }
+    try {
+        await contract.methods.createCampaign(name, description, goal, duration).send({
+            from: userAccount[0]
+        });
+        alert('Campaign created successfully!');
+    } catch (error) {
+        console.error('Error creating campaign:', error);
+        alert('Error creating the campaign.');
+    }
+}
 
 // Example: Contribute to campaign with ID 1 and 0.1 ETH
 document.getElementById('contributeButton').addEventListener('click', () => {
