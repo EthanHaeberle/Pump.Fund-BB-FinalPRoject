@@ -354,7 +354,7 @@ const contractABI = [
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
-]; // Replace with your contract's ABI
+]; 
 
 // Initialize Ethers.js and MetaMask
 async function initEthers() {
@@ -491,5 +491,5 @@ function goBack() {
     document.getElementById("campaigns").style.display = "block";
 }
 
-// Initialize
+
 initEthers();
