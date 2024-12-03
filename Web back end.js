@@ -9,13 +9,15 @@ window.onload = () => {
 // Handle MetaMask connection
 document.getElementById('connectButton').addEventListener('click', async () => {
     try {
-        // Request account access
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-
-        // Display the connected account
         document.getElementById('status').innerText = `Connected: ${accounts[0]}`;
     } catch (error) {
-        console.error(error);
-        document.getElementById('status').innerText = 'Connection failed. Please try again.';
+        if (error.code === 4001) {
+            // User rejected the request
+            document.getElementById('status').innerText = 'Connection request rejected. Please try again.';
+        } else {
+            console.error(error);
+            document.getElementById('status').innerText = 'An error occurred. Please try again.';
+        }
     }
 });
