@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pump.Fund</title>
+    <link rel="stylesheet" href="Styling.css"> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Welcome to Pump.Fund! Help Others Reach Their Web3 Goals!!</h1>
+
+        
+        <button id="connectWalletButton">Connect Wallet</button>
+        <p id="account"></p>
+
+        
+        <h2>Create Campaign</h2>
+        <form id="createCampaignForm">
+            <label for="campaignName">Campaign Name:</label><br>
+            <input type="text" id="campaignName" required><br>
+            <label for="campaignDescription">Campaign Description:</label><br>
+            <textarea id="campaignDescription" required></textarea><br>
+            <label for="goalAmount">Goal Amount (ETH):</label><br>
+            <input type="number" id="goalAmount" required><br>
+            <label for="duration">Duration (Days):</label><br>
+            <input type="number" id="duration" required><br>
+            <button type="submit">Create Campaign</button>
+        </form>
+
+        
+        <h2>Active Campaigns</h2>
+        <div id="campaignsList"></div>
+
+       
+        <h2>Contribute to Campaign</h2>
+        <label for="campaignIdToContribute">Campaign ID:</label><br>
+        <input type="number" id="campaignIdToContribute" required><br>
+        <label for="contributionAmount">Amount (ETH):</label><br>
+        <input type="number" id="contributionAmount" required><br>
+        <button id="contributeButton">Contribute</button>
+
+       
+        <h2>Claim Refund</h2>
+        <label for="campaignIdToRefund">Campaign ID:</label><br>
+        <input type="number" id="campaignIdToRefund" required><br>
+        <button id="claimRefundButton">Claim Refund</button>
+    </div>
+
+    <script>
+        
+        const provider = new ethers.JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/bCEqZ-lSkCPNPmMl5AtHnBB1FbtLG_OX");
+        const contractAddress = "0x6c5E9c811Ae21b05A0eCBBb6Fe59485c661364eA";
+        const contractABI = [
+            "function getOpenCampaigns() external view returns (string[] memory, string[] memory, string[] memory)",
+            "function createCampaign(string memory _name, string memory _description, uint256 _goalAmountEth, uint256 _durationInDays) external",
+            "function contribute(uint256 _campaignId) external payable",
+            "function claimRefund(uint256 _campaignId) external"
+        ];
+
+        const contract = new ethers.Contract(contractAddress, contractABI, provider);
+        let signer;
+
+        
+        async function displayCampaigns() {
+            const [names, ids, descriptions] = await contract.getOpenCampaigns();
+            const campaignsListDiv = document.getElementById("campaignsList");
+
+            campaignsListDiv.innerHTML = "";
+            for (let i = 0; i < names.length; i++) {
+                const campaignDiv = document.createElement("div");
+                campaignDiv.innerHTML = `
+                    <h3>${names[i]} (#${ids[i]})</h3>
+                    <p>${descriptions[i]}</p>
+                `;
+                campaignsListDiv.appendChild(campaignDiv);
+            }
+        }
+
+        
+        document.getElementById("connectWalletButton").addEventListener("click", async () => {
+            try {
+                const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                signer = provider.getSigner();
+                const userAddress = accounts[0];
+                document.getElementById("account").innerHTML = `Connected account: ${userAddress}`;
+                displayCampaigns();
+            } catch (error) {
+                alert("Failed to connect wallet");
+            }
+        });
+
+        
+        document.getElementById("createCampaignForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!signer) {
+                alert("Please connect your wallet first");
+                return;
+            }
+
+            const campaignName = document.getElementById("campaignName").value;
+            const campaignDescription = document.getElementById("campaignDescription").value;
+            const goalAmount = ethers.utils.parseEther(document.getElementById("goalAmount").value);
+            const duration = document.getElementById("duration").value;
+
+            const contractWithSigner = contract.connect(signer);
+            await contractWithSigner.createCampaign(campaignName, campaignDescription, goalAmount, duration);
+            displayCampaigns();
+        });
+
+        
+        document.getElementById("contributeButton").addEventListener("click", async () => {
+            if (!signer) {
+                alert("Please connect your wallet first");
+                return;
+            }
+
+            const campaignId = document.getElementById("campaignIdToContribute").value;
+            const contributionAmount = ethers.utils.parseEther(document.getElementById("contributionAmount").value);
+
+            const contractWithSigner = contract.connect(signer);
+            await contractWithSigner.contribute(campaignId, { value: contributionAmount });
+            displayCampaigns();
+        });
+
+        d
+        document.getElementById("claimRefundButton").addEventListener("click", async () => {
+            if (!signer) {
+                alert("Please connect your wallet first");
+                return;
+            }
+
+            const campaignId = document.getElementById("campaignIdToRefund").value;
+
+            const contractWithSigner = contract.connect(signer);
+            await contractWithSigner.claimRefund(campaignId);
+        });
+
+        window.onload = displayCampaigns;
+
+    </script>
+
+</body>
+</html>
