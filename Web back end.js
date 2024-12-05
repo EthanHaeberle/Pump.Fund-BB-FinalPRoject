@@ -3,7 +3,7 @@ import { Network, Alchemy } from "alchemy-sdk";
 import { ethers } from "ethers";  
 
 const settings = {
-  apiKey: "bCEqZ-lSkCPNPmMl5AtHnBB1FbtLG_OX", 
+  apiKey: "xxx insert my key", 
   network: Network.ETH_SEPOLIA,  
 };
 const alchemy = new Alchemy(settings);
